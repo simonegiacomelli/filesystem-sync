@@ -40,12 +40,13 @@ class TargetFixture:
         self.apply_changes(changes)
 
     def apply_changes(self, changes):
-        dumps = json.dumps(changes)
-        print(f'\ndumps=```{dumps}```')
-        sync.sync_target(self.target, json.loads(dumps))
+        sync.sync_target(self.target, json.loads(json.dumps(changes)))
 
     def get_changes(self):
-        return sync.sync_source(self.source, self.all_events)
+        changes = sync.sync_source(self.source, self.all_events)
+        dumps = json.dumps(changes)
+        print(f'\ndumps=```{dumps}```')
+        return changes
 
 
 @pytest.fixture
@@ -84,3 +85,16 @@ def test_new_file__optimize(target):
     assert (target.target / 'new_file.txt').read_text() == 'new file2'
     assert len(changes) == 1
 
+
+def test_new_file_and_delete(target):
+    # GIVEN
+    (target.source / 'new_file.txt').write_text('new file')
+    (target.source / 'new_file.txt').write_text('new file2')
+    (target.source / 'new_file.txt').unlink()
+    target.wait_at_rest()
+
+    # WHEN
+    changes = target.get_changes()
+
+    # THEN
+    assert changes == []

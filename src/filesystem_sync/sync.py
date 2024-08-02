@@ -14,7 +14,10 @@ def sync_source(source: Path, events: List[FileSystemEvent]) -> List[Any]:
             state[name] = 'modified'
     for name, status in state.items():
         path = source / name
-        result.append({'name': str(name), 'content': path.read_text()})
+        try:
+            result.append({'name': str(name), 'content': path.read_text()})
+        except Exception as e:
+            pass
     return result
 
 
