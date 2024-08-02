@@ -1,0 +1,10 @@
+# conda env create --force -f environment.yml
+name: filesystem-sync
+channels:
+  - defaults
+dependencies:
+  - python=3.9
+  - pip
+  - pip:
+      - pytest
+      - watchdog
