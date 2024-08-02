@@ -21,10 +21,11 @@ def sync_source(source: Path, events: List[FileSystemEvent]) -> List[Any]:
     return result
 
 
-def sync_target(target: Path, changes: List[Any]) -> None:
+def sync_target(target_root: Path, changes: List[Any]) -> None:
     for change in changes:
-        name = target / change['name']
-        name.write_text(change['content'])
+        target = target_root / change['name']
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_text(change['content'])
 
 
 def sync_init(source: Path) -> Any:

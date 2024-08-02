@@ -98,3 +98,18 @@ def test_new_file_and_delete(target):
 
     # THEN
     assert changes == []
+
+
+def test_new_file_in_subfolder(target):
+    # GIVEN
+    sub1 = target.source / 'sub1'
+    sub1.mkdir()
+    (sub1 / 'foo.txt').write_text('sub-file')
+    target.wait_at_rest()
+
+    # WHEN
+    target.do_sync()
+
+    # THEN
+    assert (target.target / 'sub1/foo.txt').exists()
+    assert (target.target / 'sub1/foo.txt').read_text() == 'sub-file'
