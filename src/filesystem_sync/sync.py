@@ -1,3 +1,4 @@
+import shutil
 from pathlib import Path
 from typing import List, Any
 
@@ -8,10 +9,17 @@ def sync_source(source: Path, events: List[FileSystemEvent]) -> List[Any]:
     result = []
     state = {}
     for e in events:
-        if not e.is_directory:
-            src = Path(e.src_path)
-            name = str(src.relative_to(source))
-            prev = state.get(name, None)
+        src = Path(e.src_path)
+        name = str(src.relative_to(source))
+        prev = state.get(name, None)
+        if e.is_directory:
+            if e.event_type == 'deleted':
+                for name_p in list(state.keys()):
+                    if name_p.startswith(name):
+                        del state[name_p]
+                state[name] = 'deleted'
+
+        else:  # is file
             if e.event_type == 'created':
                 state[name] = 'modified'
             if e.event_type == 'modified':
@@ -39,14 +47,14 @@ def sync_target(target_root: Path, changes: List[Any]) -> None:
         target = target_root / change['name']
         content = change['content']
         if content is None:
-            target.unlink(missing_ok=True)
+            if target.exists():
+                if target.is_dir():
+                    shutil.rmtree(target)
+                else:
+                    target.unlink(missing_ok=True)
         else:
             target.parent.mkdir(parents=True, exist_ok=True)
             target.write_text(content)
-
-
-from pathlib import Path
-from typing import List, Any
 
 
 def sync_init(source: Path) -> List[Any]:

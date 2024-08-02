@@ -1,5 +1,6 @@
 import filecmp
 import json
+import shutil
 from datetime import timedelta
 from pathlib import Path
 from time import sleep
@@ -61,14 +62,21 @@ class TargetFixture:
         self._calc_synchronized()
         return self._is_synchronized()
 
-    def _is_synchronized(self):
+    def _is_synchronized(self) -> bool:
         return not self.dircmp.left_only and not self.dircmp.right_only and not self.dircmp.diff_files
 
     def _calc_synchronized(self):
         self.dircmp = filecmp.dircmp(self.source, self.target)
 
     def sync_error(self):
-        return None if self._is_synchronized() else self.dircmp
+        def diff_printable():
+            return f'source_only={self.dircmp.left_only} target_only={self.dircmp.right_only} diff_files={self.dircmp.diff_files}'
+
+        return None if self._is_synchronized() else diff_printable()
+
+    def copy_source_to_target(self):
+        shutil.rmtree(self.target, ignore_errors=True)
+        shutil.copytree(self.source, self.target, dirs_exist_ok=True)
 
 
 @pytest.fixture
@@ -203,3 +211,20 @@ def test_synchronized_some_files(target):
 
     assert target.synchronized() is False
     assert target.sync_error() is not None
+
+
+def test_delete_folder(target):
+    # GIVEN
+    (target.source / 'sub1').mkdir()
+    (target.source / 'sub1/foo.txt').write_text('content1')
+    target.copy_source_to_target()
+    target.start()
+
+    shutil.rmtree(target.source / 'sub1')
+    target.wait_at_rest()
+
+    # WHEN
+    target.do_sync()
+
+    # THEN
+    assert target.synchronized(), target.sync_error()
