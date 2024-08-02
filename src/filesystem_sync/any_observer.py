@@ -22,7 +22,10 @@ class AnyObserver(FileSystemEventHandler):
         self._observer.stop()
 
     def join(self):
-        self._observer.join()
+        try:
+            self._observer.join()
+        except RuntimeError:
+            pass # catch if it was not started
 
     def on_any_event(self, event: FileSystemEvent) -> None:
         self._callback(event)

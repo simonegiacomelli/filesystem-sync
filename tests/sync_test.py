@@ -1,3 +1,4 @@
+import filecmp
 import json
 from datetime import timedelta
 from pathlib import Path
@@ -22,6 +23,7 @@ class TargetFixture:
         self.all_events = []
         self.window = timedelta(milliseconds=100)
         self.activities = ActivityMonitor(self.window + timedelta(milliseconds=10))
+        self.dircmp = None
 
         def callback(events: List[FileSystemEvent]):
             self.activities.touch()
@@ -51,6 +53,22 @@ class TargetFixture:
         dumps = json.dumps(changes)
         print(f'\ndumps=```{dumps}```')
         return changes
+
+    def do_init(self):
+        self.apply_changes(sync.sync_init(self.source))
+
+    def synchronized(self):
+        self._calc_synchronized()
+        return self._is_synchronized()
+
+    def _is_synchronized(self):
+        return not self.dircmp.left_only and not self.dircmp.right_only and not self.dircmp.diff_files
+
+    def _calc_synchronized(self):
+        self.dircmp = filecmp.dircmp(self.source, self.target)
+
+    def sync_error(self):
+        return None if self._is_synchronized() else self.dircmp
 
 
 @pytest.fixture
@@ -139,3 +157,49 @@ def test_delete_file(target):
     # THEN
     assert not target_foo.exists()
     assert len(changes) == 1
+
+
+def test_created(target):
+    # GIVEN
+    target.start()
+    (target.source / 'foo.txt').touch()
+    target.wait_at_rest()
+
+    # WHEN
+    changes = target.do_sync()
+
+    # THEN
+    assert (target.target / 'foo.txt').exists()
+    assert (target.target / 'foo.txt').stat().st_size == 0
+    assert len(changes) == 1
+
+
+def test_init(target):
+    # GIVEN
+    (target.source / 'foo.txt').write_text('c1')
+
+    # WHEN
+    target.do_init()
+
+    # THEN
+    assert (target.target / 'foo.txt').read_text() == 'c1'
+    assert target.synchronized(), target.sync_error()
+
+
+def test_synchronized_no_files(target):
+    # GIVEN
+
+    # WHEN
+    target.do_init()
+
+    # THEN
+    assert target.synchronized()
+    assert target.sync_error() is None
+
+
+def test_synchronized_some_files(target):
+    # GIVEN
+    (target.source / 'foo.txt').write_text('c1')
+
+    assert target.synchronized() is False
+    assert target.sync_error() is not None

@@ -45,5 +45,13 @@ def sync_target(target_root: Path, changes: List[Any]) -> None:
             target.write_text(content)
 
 
-def sync_init(source: Path) -> Any:
-    return None
+from pathlib import Path
+from typing import List, Any
+
+
+def sync_init(source: Path) -> List[Any]:
+    result = []
+    for path in source.rglob('*'):
+        if path.is_file():
+            result.append({'name': str(path.relative_to(source)), 'content': path.read_text()})
+    return result
