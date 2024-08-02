@@ -1,0 +1,32 @@
+# https://packaging.python.org/en/latest/tutorials/packaging-projects/
+[project]
+name = "filesystem-sync"
+version = "0.0.1"
+authors = [{ name = "Simone Giacomelli", email = "simone.giacomelli@gmail.com" }]
+dependencies = ["watchdog==4.0.1"]
+requires-python = ">=3.9"
+keywords = ["filesystem-sync", "development", "tools"]
+readme = "README.md"
+license = { file = "LICENSE" }
+classifiers = [
+    "Intended Audience :: Developers",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+]
+
+
+[project.urls]
+Homepage = "https://github.com/simonegiacomelli/filesystem-sync"
+Issues = "https://github.com/simonegiacomelli/filesystem-sync/issues"
+
+[build-system]
+requires = ["setuptools", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[project.optional-dependencies]
+test = ["pytest"]
+pypi = ["twine", "build"]
+
