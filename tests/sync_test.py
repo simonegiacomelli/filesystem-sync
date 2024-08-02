@@ -28,8 +28,11 @@ class TargetFixture:
             self.all_events.extend(events)
 
         self.debounced_watcher = WatchdogDebouncer(tmp_path, self.window, callback)
-        self.debounced_watcher.start()
+
         self.activities.touch()
+
+    def start(self):
+        self.debounced_watcher.start()
 
     def wait_at_rest(self):
         [sleep(0.1) for _ in range(20) if not self.activities.at_rest()]
@@ -38,6 +41,7 @@ class TargetFixture:
     def do_sync(self):
         changes = self.get_changes()
         self.apply_changes(changes)
+        return changes
 
     def apply_changes(self, changes):
         sync.sync_target(self.target, json.loads(json.dumps(changes)))
@@ -59,6 +63,7 @@ def target(tmp_path):
 
 def test_new_file(target):
     # GIVEN
+    target.start()
     (target.source / 'new_file.txt').write_text('new file')
     target.wait_at_rest()
 
@@ -72,13 +77,13 @@ def test_new_file(target):
 
 def test_new_file__optimize(target):
     # GIVEN
+    target.start()
     (target.source / 'new_file.txt').write_text('new file')
     (target.source / 'new_file.txt').write_text('new file2')
     target.wait_at_rest()
 
     # WHEN
-    changes = target.get_changes()
-    target.apply_changes(changes)
+    changes = target.do_sync()
 
     # THEN
     assert (target.target / 'new_file.txt').exists()
@@ -88,6 +93,7 @@ def test_new_file__optimize(target):
 
 def test_new_file_and_delete(target):
     # GIVEN
+    target.start()
     (target.source / 'new_file.txt').write_text('new file')
     (target.source / 'new_file.txt').write_text('new file2')
     (target.source / 'new_file.txt').unlink()
@@ -102,6 +108,7 @@ def test_new_file_and_delete(target):
 
 def test_new_file_in_subfolder(target):
     # GIVEN
+    target.start()
     sub1 = target.source / 'sub1'
     sub1.mkdir()
     (sub1 / 'foo.txt').write_text('sub-file')
@@ -113,3 +120,22 @@ def test_new_file_in_subfolder(target):
     # THEN
     assert (target.target / 'sub1/foo.txt').exists()
     assert (target.target / 'sub1/foo.txt').read_text() == 'sub-file'
+
+
+def test_delete_file(target):
+    # GIVEN
+    source_foo = target.source / 'foo.txt'
+    source_foo.write_text('content1')
+    target_foo = target.target / 'foo.txt'
+    target_foo.write_text('content1')
+    target.start()
+
+    source_foo.unlink()
+    target.wait_at_rest()
+
+    # WHEN
+    changes = target.do_sync()
+
+    # THEN
+    assert not target_foo.exists()
+    assert len(changes) == 1
