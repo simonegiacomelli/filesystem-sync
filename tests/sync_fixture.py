@@ -1,8 +1,11 @@
 import filecmp
 import json
 import shutil
+import sys
+import tempfile
 from datetime import timedelta
 from pathlib import Path
+from threading import Lock
 from time import sleep
 from typing import List
 
@@ -10,26 +13,31 @@ from watchdog.events import FileSystemEvent
 
 from filesystem_sync import sync
 from filesystem_sync.watchdog_debouncer import WatchdogDebouncer
+from tests import new_tmp_path
 from tests.activity_monitor import ActivityMonitor
 
 
 class SyncFixture:
 
-    def __init__(self, tmp_path: Path):
+    def __init__(self, tmp_path: Path, exist_ok=False):
         self.source = tmp_path / 'source'
-        self.source.mkdir()
+        self.source.mkdir(exist_ok=exist_ok)
         self.target = tmp_path / 'target'
-        self.target.mkdir()
+        self.target.mkdir(exist_ok=exist_ok)
         self.all_events = []
         self.window = timedelta(milliseconds=100)
         self.activities = ActivityMonitor(self.window + timedelta(milliseconds=10))
         self.dircmp = None
+        self._lock = Lock()
 
         def callback(events: List[FileSystemEvent]):
             self.activities.touch()
-            self.all_events.extend(events)
+            with self._lock:
+                self.all_events.extend(events)
+                for e in events:
+                    print(f'event={e}')
 
-        self.debounced_watcher = WatchdogDebouncer(tmp_path, self.window, callback)
+        self.debounced_watcher = WatchdogDebouncer(self.source, self.window, callback)
 
         self.activities.touch()
 
@@ -49,9 +57,14 @@ class SyncFixture:
         sync.sync_target(self.target, json.loads(json.dumps(changes)))
 
     def get_changes(self):
-        changes = sync.sync_source(self.source, self.all_events)
+        with self._lock:
+            all_events = self.all_events
+            self.all_events = []
+
+        changes = sync.sync_source(self.source, all_events)
         dumps = json.dumps(changes)
-        print(f'\ndumps=```{dumps}```')
+        if len(changes) > 0:
+            print(f'\ndumps=```{dumps}```')
         return changes
 
     def do_init(self):
@@ -76,3 +89,19 @@ class SyncFixture:
     def copy_source_to_target(self):
         shutil.rmtree(self.target, ignore_errors=True)
         shutil.copytree(self.source, self.target, dirs_exist_ok=True)
+
+
+def main():
+    tmp_path = Path(sys.argv[1]) if len(sys.argv) > 1 else new_tmp_path()
+    fixture = SyncFixture(tmp_path, exist_ok=True)
+    fixture.start()
+    print(f'Watching {fixture.source}')
+    while True:
+        fixture.wait_at_rest()
+        changes = fixture.do_sync()
+        if changes:
+            print(f'changes={changes}')
+
+
+if __name__ == '__main__':
+    main()
