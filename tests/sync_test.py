@@ -228,3 +228,23 @@ def test_delete_folder(target):
 
     # THEN
     assert target.synchronized(), target.sync_error()
+
+def test_delete_folder__and_recreate_it(target):
+    def build():
+        (target.source / 'sub1').mkdir()
+        (target.source / 'sub1/foo.txt').write_text('content1')
+
+    # GIVEN
+    build()
+    target.copy_source_to_target()
+    target.start()
+
+    # WHEN
+    shutil.rmtree(target.source / 'sub1')
+    build()
+    target.wait_at_rest()
+
+    target.do_sync()
+
+    # THEN
+    assert target.synchronized(), target.sync_error()
