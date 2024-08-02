@@ -15,7 +15,10 @@ from tests.activity_monitor import ActivityMonitor
 class TargetFixture:
 
     def __init__(self, tmp_path: Path):
-        self.tmp_path = tmp_path
+        self.source = tmp_path / 'source'
+        self.source.mkdir()
+        self.target = tmp_path / 'target'
+        self.target.mkdir()
         self.all_events = []
         self.window = timedelta(milliseconds=100)
         self.activities = ActivityMonitor(self.window + timedelta(milliseconds=10))
@@ -24,8 +27,8 @@ class TargetFixture:
             self.activities.touch()
             self.all_events.extend(events)
 
-        debounced_watcher = WatchdogDebouncer(tmp_path, self.window, callback)
-        debounced_watcher.start()
+        self.debounced_watcher = WatchdogDebouncer(tmp_path, self.window, callback)
+        self.debounced_watcher.start()
         self.activities.touch()
 
     def wait_at_rest(self):
@@ -35,20 +38,25 @@ class TargetFixture:
 
 @pytest.fixture
 def target(tmp_path):
-    return TargetFixture(tmp_path)
+    fixture = TargetFixture(tmp_path)
+    yield fixture
+    fixture.debounced_watcher.stop()
+    fixture.debounced_watcher.join()
 
 
 def test_new_file(target):
-    target.tmp_path.joinpath('new_file.txt').write_text('new file')
+    # GIVEN
+    (target.source / 'new_file.txt').write_text('new file')
     target.wait_at_rest()
 
+    # WHEN
+    payload = sync.sync_source(target.source, target.all_events)
+    dumps = json.dumps(payload)
+    print(f'\ndumps=```{dumps}```')
+    sync.sync_target(target.target, json.loads(dumps))
+
+    # THEN
+    assert (target.target / 'new_file.txt').exists()
+    assert (target.target / 'new_file.txt').read_text() == 'new file'
+
     assert len(target.all_events) > 0
-
-
-    return
-    target = serializable_events(all_events)
-    j = json.dumps(target)
-    print(f'j=```{j}```')
-
-    debounced_watcher.stop()
-    debounced_watcher.join()
