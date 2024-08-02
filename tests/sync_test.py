@@ -35,6 +35,18 @@ class TargetFixture:
         [sleep(0.1) for _ in range(20) if not self.activities.at_rest()]
         assert self.activities.at_rest()
 
+    def do_sync(self):
+        changes = self.get_changes()
+        self.apply_changes(changes)
+
+    def apply_changes(self, changes):
+        dumps = json.dumps(changes)
+        print(f'\ndumps=```{dumps}```')
+        sync.sync_target(self.target, json.loads(dumps))
+
+    def get_changes(self):
+        return sync.sync_source(self.source, self.all_events)
+
 
 @pytest.fixture
 def target(tmp_path):
@@ -50,13 +62,25 @@ def test_new_file(target):
     target.wait_at_rest()
 
     # WHEN
-    payload = sync.sync_source(target.source, target.all_events)
-    dumps = json.dumps(payload)
-    print(f'\ndumps=```{dumps}```')
-    sync.sync_target(target.target, json.loads(dumps))
+    target.do_sync()
 
     # THEN
     assert (target.target / 'new_file.txt').exists()
     assert (target.target / 'new_file.txt').read_text() == 'new file'
 
-    assert len(target.all_events) > 0
+
+def test_new_file__optimize(target):
+    # GIVEN
+    (target.source / 'new_file.txt').write_text('new file')
+    (target.source / 'new_file.txt').write_text('new file2')
+    target.wait_at_rest()
+
+    # WHEN
+    changes = target.get_changes()
+    target.apply_changes(changes)
+
+    # THEN
+    assert (target.target / 'new_file.txt').exists()
+    assert (target.target / 'new_file.txt').read_text() == 'new file2'
+    assert len(changes) == 1
+
