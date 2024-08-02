@@ -13,6 +13,8 @@ from filesystem_sync.watchdog_debouncer import WatchdogDebouncer
 from filesystem_sync import sync
 from tests.activity_monitor import ActivityMonitor
 
+invalid_utf8 = b'\x80\x81\x82'
+
 
 class TargetFixture:
 
@@ -185,12 +187,14 @@ def test_created(target):
 def test_init(target):
     # GIVEN
     (target.source / 'foo.txt').write_text('c1')
+    (target.source / 'foo.bin').write_bytes(invalid_utf8)
 
     # WHEN
     target.do_init()
 
     # THEN
     assert (target.target / 'foo.txt').read_text() == 'c1'
+    assert (target.target / 'foo.bin').read_bytes() == invalid_utf8
     assert target.synchronized(), target.sync_error()
 
 
@@ -229,6 +233,7 @@ def test_delete_folder(target):
     # THEN
     assert target.synchronized(), target.sync_error()
 
+
 def test_delete_folder__and_recreate_it(target):
     def build():
         (target.source / 'sub1').mkdir()
@@ -248,3 +253,18 @@ def test_delete_folder__and_recreate_it(target):
 
     # THEN
     assert target.synchronized(), target.sync_error()
+
+
+def test_invalid_text(target):
+    # GIVEN
+    target.start()
+
+    (target.source / 'foo.bin').write_bytes(invalid_utf8)
+    target.wait_at_rest()
+
+    # WHEN
+    target.do_sync()
+
+    # THEN
+    assert target.synchronized(), target.sync_error()
+    assert (target.target / 'foo.bin').read_bytes() == invalid_utf8
