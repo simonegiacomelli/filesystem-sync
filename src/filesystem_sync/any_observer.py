@@ -18,8 +18,10 @@ class AnyObserver(FileSystemEventHandler):
         self._observer.schedule(self, str(self._path), recursive=True)
         self._observer.start()
 
-    def stop_join(self):
+    def stop(self):
         self._observer.stop()
+
+    def join(self):
         self._observer.join()
 
     def on_any_event(self, event: FileSystemEvent) -> None:

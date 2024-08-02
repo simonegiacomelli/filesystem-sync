@@ -22,7 +22,7 @@ class DebouncedObserver:
         self._observer = Observer()
 
     def watch_directory(self):
-        self._observer.schedule(AnyObserver(self._debouncer.add_event), str(self._path), recursive=True)
+        self._observer.schedule(AnyObserver(self._path, self._debouncer.add_event), str(self._path), recursive=True)
         self._observer.start()
 
     def stop_join(self):
