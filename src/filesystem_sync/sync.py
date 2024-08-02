@@ -9,18 +9,14 @@ def sync_source(source: Path, events: List[FileSystemEvent]) -> List[Any]:
     state = {}
     for e in events:
         if not e.is_directory:
+            src = Path(e.src_path)
+            name = str(src.relative_to(source))
+            prev = state.get(name, None)
             if e.event_type == 'created':
-                src = Path(e.src_path)
-                name = str(src.relative_to(source))
                 state[name] = 'modified'
             if e.event_type == 'modified':
-                src = Path(e.src_path)
-                name = str(src.relative_to(source))
-                state[name] = state.get(name, 'modified') # if it was created, it stays created
+                state[name] = state.get(name, 'modified')  # if it was created, it stays created
             elif e.event_type == 'deleted':
-                src = Path(e.src_path)
-                name = str(src.relative_to(source))
-                prev = state.get(name)
                 if prev == 'modified':
                     del state[name]
                 else:
