@@ -5,11 +5,10 @@ import threading
 from datetime import timedelta
 from pathlib import Path
 from time import sleep
-from typing import Callable
 
-from watchdog.events import FileSystemEventHandler, FileSystemEvent
 from watchdog.observers import Observer
 
+from filesystem_sync.any_observer import AnyObserver
 from filesystem_sync.debouncer import Debouncer
 from filesystem_sync.debouncer_thread import DebouncerThread
 
@@ -23,22 +22,12 @@ class DebouncedObserver:
         self._observer = Observer()
 
     def watch_directory(self):
-        self._observer.schedule(_Handler(self._debouncer.add_event), str(self._path), recursive=True)
+        self._observer.schedule(AnyObserver(self._debouncer.add_event), str(self._path), recursive=True)
         self._observer.start()
 
     def stop_join(self):
         self._observer.stop()
         self._observer.join()
-
-
-class _Handler(FileSystemEventHandler):
-
-    def __init__(self, callback: Callable[[FileSystemEvent], None]):
-        super().__init__()
-        self._callback = callback
-
-    def on_any_event(self, event: FileSystemEvent) -> None:
-        self._callback(event)
 
 
 def main():
