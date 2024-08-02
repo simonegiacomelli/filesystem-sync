@@ -14,7 +14,7 @@ There are in essence two parts:
 Both parts have tests and are tested in isolation.
 
 ## Debounce
-This is a general implementation that keeps a buffer and notifies the observer when the buffer is full or when a timeout is reached.
+This is a general implementation that keeps a buffer and notifies the observer when a timeout is reached.
 
 ## Sync
 
