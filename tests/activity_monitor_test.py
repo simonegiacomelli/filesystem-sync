@@ -23,6 +23,15 @@ def test_activity_monitor(target):
 def test_touch__change_at_rest(target):
     target.touch()
     assert not target.at_rest()
+    _time_mock.advance(timedelta(milliseconds=10))
+    assert not target.at_rest()
+
+
+def test_rest_delta(target):
+    assert target.rest_delta() is None
+    target.touch()
+    _time_mock.advance(timedelta(milliseconds=10))
+    assert target.rest_delta() == timedelta(milliseconds=10)
 
 
 def test_touch_after_time_window(target):
