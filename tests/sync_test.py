@@ -194,3 +194,21 @@ def test_invalid_text(target):
     # THEN
     assert target.synchronized(), target.sync_error()
     assert (target.target / 'foo.bin').read_bytes() == invalid_utf8
+
+
+def todo_test_rename_file(target):
+    # GIVEN
+    (target.source / 'foo.txt').write_text('content1')
+    target.copy_source_to_target()
+    target.start()
+
+    # WHEN
+    (target.source / 'foo.txt').rename(target.source / 'bar.txt')
+    target.wait_at_rest()
+    target.do_sync()
+
+    # THEN
+    assert not (target.target / 'foo.txt').exists()
+    assert (target.target / 'bar.txt').exists()
+    assert (target.target / 'bar.txt').read_text() == 'content1'
+

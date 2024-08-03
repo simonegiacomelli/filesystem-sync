@@ -8,6 +8,7 @@ from watchdog.events import FileSystemEvent
 
 def sync_source(source: Path, events: List[FileSystemEvent]) -> List[Any]:
     state = {}
+    moved = {}
     for e in events:
         src = Path(e.src_path)
         name = str(src.relative_to(source))
@@ -20,6 +21,10 @@ def sync_source(source: Path, events: List[FileSystemEvent]) -> List[Any]:
                 state[name] = 'deleted'
 
         else:  # is file
+            if e.event_type == 'moved':
+                dst = Path(e.dest_path)
+                dst_name = str(dst.relative_to(source))
+                moved[dst_name] = name
             if e.event_type == 'created':
                 state[name] = 'modified'
             if e.event_type == 'modified':

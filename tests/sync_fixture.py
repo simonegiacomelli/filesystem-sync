@@ -34,8 +34,9 @@ class SyncFixture:
             self.activities.touch()
             with self._lock:
                 self.all_events.extend(events)
+                print(f'events={len(events)}')
                 for e in events:
-                    print(f'event={e}')
+                    print(f'  {e}')
 
         self.debounced_watcher = WatchdogDebouncer(self.source, self.window, callback)
 
