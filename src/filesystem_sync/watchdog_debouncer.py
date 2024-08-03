@@ -7,6 +7,7 @@ from typing import Callable, List
 
 from watchdog.events import FileSystemEvent
 
+from filesystem_sync import new_tmp_path
 from filesystem_sync.any_observer import AnyObserver
 from filesystem_sync.debouncer import Debouncer
 from filesystem_sync.debouncer_thread import DebouncerThread
@@ -31,10 +32,8 @@ class WatchdogDebouncer(DebouncerThread):
         self._any_observer.join()
         super().join()
 
-def main():
-    def new_tmp_path() -> Path:
-        return Path(tempfile.mkdtemp(prefix='debounce-harness'))
 
+def main():
     tmp_path = new_tmp_path()
 
     def print_events(events: List[FileSystemEvent]):
