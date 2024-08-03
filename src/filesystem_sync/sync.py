@@ -8,7 +8,7 @@ class Sync(Protocol):
 
     @staticmethod
     def sync_source(source: Path, events: List[FileSystemEvent]) -> List[Any]:
-        """This part has the following input:
+        """Could be called 'sync_produce'. This part has the following input:
 - a reference to the root of the monitored source filesystem
 - a list of filesystem change events
 
@@ -21,7 +21,7 @@ The output is:
 
     @staticmethod
     def sync_target(target: Path, changes: List[Any]) -> None:
-        """This part has the following input:
+        """Could be called 'sync_apply'. This part has the following input:
 - a reference to the root of the target filesystem
 - a list of filesystem aggregated change events
 
