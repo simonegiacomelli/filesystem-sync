@@ -2,15 +2,16 @@ import shutil
 
 import pytest
 
+from filesystem_sync import sync_delta, sync_zip
 from tests.sync_fixture import SyncFixture
 
 invalid_utf8 = b'\x80\x81\x82'
 
 
-@pytest.fixture
-def target(tmp_path):
+@pytest.fixture(params=[sync_delta, sync_zip])
+def target(tmp_path, request):
     print(f'\ntmp_path file://{tmp_path}')
-    fixture = SyncFixture(tmp_path)
+    fixture = SyncFixture(tmp_path, sync=request.param)
     yield fixture
     fixture.debounced_watcher.stop()
     fixture.debounced_watcher.join()
@@ -212,6 +213,7 @@ def todo_test_rename_file(target):
     assert not (target.target / 'foo.txt').exists()
     assert (target.target / 'bar.txt').exists()
     assert (target.target / 'bar.txt').read_text() == 'content1'
+
 
 def todo_test_rename_folder(target):
     # GIVEN
