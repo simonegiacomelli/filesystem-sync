@@ -11,7 +11,8 @@ from typing import List
 
 from watchdog.events import FileSystemEvent
 
-from filesystem_sync import sync
+from filesystem_sync import sync_delta
+from filesystem_sync.sync import Sync
 from filesystem_sync.watchdog_debouncer import WatchdogDebouncer
 from tests import new_tmp_path
 from tests.activity_monitor import ActivityMonitor
@@ -19,7 +20,8 @@ from tests.activity_monitor import ActivityMonitor
 
 class SyncFixture:
 
-    def __init__(self, tmp_path: Path, exist_ok=False):
+    def __init__(self, tmp_path: Path, exist_ok=False, sync: Sync = sync_delta):
+        self.sync = sync
         self.source = tmp_path / 'source'
         self.source.mkdir(exist_ok=exist_ok)
         self.target = tmp_path / 'target'
@@ -55,21 +57,21 @@ class SyncFixture:
         return changes
 
     def apply_changes(self, changes):
-        sync.sync_target(self.target, json.loads(json.dumps(changes)))
+        self.sync.sync_target(self.target, json.loads(json.dumps(changes)))
 
     def get_changes(self):
         with self._lock:
             all_events = self.all_events
             self.all_events = []
 
-        changes = sync.sync_source(self.source, all_events)
+        changes = self.sync.sync_source(self.source, all_events)
         dumps = json.dumps(changes)
         if len(changes) > 0:
             print(f'\ndumps=```{dumps}```')
         return changes
 
     def do_init(self):
-        self.apply_changes(sync.sync_init(self.source))
+        self.apply_changes(self.sync.sync_init(self.source))
 
     def synchronized(self):
         self._calc_synchronized()
