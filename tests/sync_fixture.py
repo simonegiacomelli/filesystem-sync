@@ -12,7 +12,7 @@ from typing import List
 import pytest
 from watchdog.events import FileSystemEvent
 
-from filesystem_sync import sync_delta, sync_zip
+from filesystem_sync import sync_delta, sync_zip, filesystemevents_print
 from filesystem_sync.sync import Sync
 from filesystem_sync.watchdog_debouncer import WatchdogDebouncer
 from tests import new_tmp_path
@@ -33,8 +33,11 @@ class SyncFixture:
         self.activities = ActivityMonitor(self.window + timedelta(milliseconds=10))
         self.dircmp = None
         self._lock = Lock()
+        self.callback_count = 0
 
         def callback(events: List[FileSystemEvent]):
+            self.callback_count += 1
+            filesystemevents_print(events)
             self.activities.touch()
             with self._lock:
                 self.all_events.extend(events)

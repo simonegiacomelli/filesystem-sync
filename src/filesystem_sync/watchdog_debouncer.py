@@ -18,7 +18,12 @@ class WatchdogDebouncer(DebouncerThread):
     def __init__(self, path: Path, window: timedelta, callback: Callable[[List[FileSystemEvent]], None]):
         self._debouncer = Debouncer(window)
         super().__init__(self._debouncer, callback)
-        self._any_observer = AnyObserver(path, self._debouncer.add_event)
+
+        def skip_open(event: FileSystemEvent):
+            if event.event_type != 'opened':
+                self._debouncer.add_event(event)
+
+        self._any_observer = AnyObserver(path, skip_open)
 
     def start(self):
         self._any_observer.watch_directory()
