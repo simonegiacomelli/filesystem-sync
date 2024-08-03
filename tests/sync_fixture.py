@@ -38,9 +38,9 @@ class SyncFixture:
             self.activities.touch()
             with self._lock:
                 self.all_events.extend(events)
-                print(f'events={len(events)}')
                 for e in events:
                     print(f'  {e}')
+                print(f'events={len(events)}')
 
         self.debounced_watcher = WatchdogDebouncer(self.source, self.window, callback)
 
@@ -64,7 +64,7 @@ class SyncFixture:
     def get_changes(self):
         with self._lock:
             all_events = self.all_events
-            self.all_events = []
+            self.all_events.clear()
 
         changes = self.sync.sync_source(self.source, all_events)
         dumps = json.dumps(changes)
@@ -109,6 +109,8 @@ def main():
     while True:
         fixture.wait_at_rest()
         changes = fixture.do_sync()
+        if changes:
+            print(f'Changes len: {len(changes)}')
 
 
 if __name__ == '__main__':

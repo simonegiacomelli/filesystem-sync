@@ -15,10 +15,10 @@ class ActivityMonitor:
     def at_rest(self) -> bool:
         delta = self.rest_delta()
         if delta is None:
-            print('at_rest: True')
+            # print('at_rest: True')
             return True
         ar = delta >= self.window
-        print(f'at_rest: {ar}')
+        # print(f'at_rest: {ar}')
         return ar
 
     def rest_delta(self) -> timedelta | None:
