@@ -9,6 +9,7 @@ from threading import Lock
 from time import sleep
 from typing import List
 
+import pytest
 from watchdog.events import FileSystemEvent
 
 from filesystem_sync import sync_delta
@@ -92,6 +93,10 @@ class SyncFixture:
     def copy_source_to_target(self):
         shutil.rmtree(self.target, ignore_errors=True)
         shutil.copytree(self.source, self.target, dirs_exist_ok=True)
+
+    def skip_for(self, sync, reason):
+        if self.sync == sync:
+            pytest.skip(f'Skipped for {sync} {reason}')
 
 
 def main():

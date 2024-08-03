@@ -59,7 +59,7 @@ def test_new_file_and_delete(target):
     changes = target.get_changes()
 
     # THEN
-    assert changes == []
+    assert target.synchronized(), target.sync_error()
 
 
 def test_new_file_in_subfolder(target):
@@ -198,7 +198,8 @@ def test_invalid_text(target):
     assert (target.target / 'foo.bin').read_bytes() == invalid_utf8
 
 
-def todo_test_rename_file(target):
+def test_rename_file(target):
+    target.skip_for(sync_delta, 'not implemented')
     # GIVEN
     (target.source / 'foo.txt').write_text('content1')
     target.copy_source_to_target()
@@ -215,7 +216,8 @@ def todo_test_rename_file(target):
     assert (target.target / 'bar.txt').read_text() == 'content1'
 
 
-def todo_test_rename_folder(target):
+def test_rename_folder(target):
+    target.skip_for(sync_delta, 'not implemented')
     # GIVEN
     (target.source / 'sub1').mkdir()
     (target.source / 'sub1/foo.txt').write_text('content1')
@@ -231,7 +233,8 @@ def todo_test_rename_folder(target):
     assert target.synchronized(), target.sync_error()
 
 
-def todo_test_move_folder_in_subfolder(target):
+def test_move_folder_in_subfolder(target):
+    target.skip_for(sync_delta, 'not implemented')
     # GIVEN
     (target.source / 'sub1').mkdir()
     (target.source / 'sub1/foo.txt').write_text('content1')
