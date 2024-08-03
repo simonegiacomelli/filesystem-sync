@@ -9,6 +9,7 @@ invalid_utf8 = b'\x80\x81\x82'
 
 @pytest.fixture
 def target(tmp_path):
+    print(f'\ntmp_path file://{tmp_path}')
     fixture = SyncFixture(tmp_path)
     yield fixture
     fixture.debounced_watcher.stop()
@@ -212,3 +213,34 @@ def todo_test_rename_file(target):
     assert (target.target / 'bar.txt').exists()
     assert (target.target / 'bar.txt').read_text() == 'content1'
 
+def todo_test_rename_folder(target):
+    # GIVEN
+    (target.source / 'sub1').mkdir()
+    (target.source / 'sub1/foo.txt').write_text('content1')
+    target.copy_source_to_target()
+    target.start()
+
+    # WHEN
+    (target.source / 'sub1').rename(target.source / 'sub2')
+    target.wait_at_rest()
+    target.do_sync()
+
+    # THEN
+    assert target.synchronized(), target.sync_error()
+
+
+def todo_test_move_folder_in_subfolder(target):
+    # GIVEN
+    (target.source / 'sub1').mkdir()
+    (target.source / 'sub1/foo.txt').write_text('content1')
+    (target.source / 'sub2').mkdir()
+    target.copy_source_to_target()
+    target.start()
+
+    # WHEN
+    shutil.move(target.source / 'sub1', target.source / 'sub2/')
+    target.wait_at_rest()
+    target.do_sync()
+
+    # THEN
+    assert target.synchronized(), target.sync_error()
