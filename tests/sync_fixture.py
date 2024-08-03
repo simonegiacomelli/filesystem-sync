@@ -60,7 +60,7 @@ class SyncFixture:
 
     def get_changes(self):
         with self._lock:
-            all_events = self.all_events
+            all_events = self.all_events.copy()
             self.all_events.clear()
 
         changes = self.sync.sync_source(self.source, all_events)
