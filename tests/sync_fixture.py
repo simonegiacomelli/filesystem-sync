@@ -12,7 +12,7 @@ from typing import List
 import pytest
 from watchdog.events import FileSystemEvent
 
-from filesystem_sync import sync_delta
+from filesystem_sync import sync_delta, sync_zip
 from filesystem_sync.sync import Sync
 from filesystem_sync.watchdog_debouncer import WatchdogDebouncer
 from tests import new_tmp_path
@@ -21,8 +21,9 @@ from tests.activity_monitor import ActivityMonitor
 
 class SyncFixture:
 
-    def __init__(self, tmp_path: Path, exist_ok=False, sync: Sync = sync_delta):
+    def __init__(self, tmp_path: Path, exist_ok=False, print_changes=True, sync: Sync = sync_delta):
         self.sync = sync
+        self.print_changes = print_changes
         self.source = tmp_path / 'source'
         self.source.mkdir(exist_ok=exist_ok)
         self.target = tmp_path / 'target'
@@ -49,8 +50,8 @@ class SyncFixture:
         self.debounced_watcher.start()
 
     def wait_at_rest(self):
-        [sleep(0.1) for _ in range(20) if not self.activities.at_rest()]
-        assert self.activities.at_rest()
+        [sleep(0.1) for _ in range(40) if not self.activities.at_rest()]
+        assert self.activities.at_rest(), self.activities.rest_delta()
 
     def do_sync(self):
         changes = self.get_changes()
@@ -67,7 +68,7 @@ class SyncFixture:
 
         changes = self.sync.sync_source(self.source, all_events)
         dumps = json.dumps(changes)
-        if len(changes) > 0:
+        if self.print_changes and len(changes) > 0:
             print(f'\ndumps=```{dumps}```')
         return changes
 
@@ -101,14 +102,13 @@ class SyncFixture:
 
 def main():
     tmp_path = Path(sys.argv[1]) if len(sys.argv) > 1 else new_tmp_path()
-    fixture = SyncFixture(tmp_path, exist_ok=True)
+    fixture = SyncFixture(tmp_path, exist_ok=True, print_changes=False, sync=sync_zip)
+    fixture.copy_source_to_target()
     fixture.start()
-    print(f'Watching {fixture.source}')
+    print(f'Watching file://{fixture.source}')
     while True:
         fixture.wait_at_rest()
         changes = fixture.do_sync()
-        if changes:
-            print(f'changes={changes}')
 
 
 if __name__ == '__main__':

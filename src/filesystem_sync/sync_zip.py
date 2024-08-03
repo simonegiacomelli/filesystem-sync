@@ -14,10 +14,14 @@ from watchdog.events import FileSystemEvent
 
 
 def sync_source(source: Path, events: List[FileSystemEvent]) -> List[Any]:
+    if not events:
+        return []
     return sync_init(source)
 
 
 def sync_target(target_root: Path, changes: List[Any]) -> None:
+    if not changes:
+        return
     for e in target_root.iterdir():
         if e.is_file():
             e.unlink()
